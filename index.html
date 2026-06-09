@@ -33,7 +33,7 @@
       border-radius: 28px; padding: 28px 24px 24px;
       backdrop-filter: blur(24px) saturate(180%);
       -webkit-backdrop-filter: blur(24px) saturate(180%);
-      box-shadow: 0 8px 32px rgba(200,100,150,0.12), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,180,210,0.2);
+      box-shadow: 0 8px 32px rgba(200,100,150,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
     }
     .card::before {
       content: ''; position: absolute; inset: 0; border-radius: 28px;
@@ -88,7 +88,7 @@
     }
     .overlay.show { opacity: 1; pointer-events: all; }
     .modal {
-      background: rgba(255,245,250,0.85); border: 1.5px solid var(--glass-border);
+      background: rgba(255,245,250,0.9); border: 1.5px solid var(--glass-border);
       border-radius: 24px; padding: 32px 28px; text-align: center;
       backdrop-filter: blur(24px);
       box-shadow: 0 16px 48px rgba(196,82,122,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
@@ -96,7 +96,8 @@
     }
     .overlay.show .modal { transform: scale(1); }
     .modal-emoji { font-size: 3rem; margin-bottom: 8px; }
-    .modal-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.5rem; color: var(--pink-dark); margin-bottom: 16px; }
+    .modal-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.4rem; color: var(--pink-dark); margin-bottom: 6px; }
+    .modal-sub { font-size: 0.8rem; color: var(--text-mid); margin-bottom: 16px; }
     .modal-btns { display: flex; gap: 10px; justify-content: center; }
   </style>
 </head>
@@ -122,7 +123,7 @@
   <div class="footer-row">
     <span class="turn-label" id="turnLabel">Turno de X</span>
     <button class="glass-btn secondary" id="restartBtn">Reiniciar</button>
-    <button class="glass-btn secondary" id="newGameBtn">Partida nueva</button>
+    <button class="glass-btn secondary" id="newGameBtn">Nueva partida</button>
   </div>
 </div>
 
@@ -130,6 +131,7 @@
   <div class="modal">
     <div class="modal-emoji" id="modalEmoji">🎀</div>
     <div class="modal-title" id="modalTitle">¡Ganaste!</div>
+    <div class="modal-sub" id="modalSub"></div>
     <div class="modal-btns">
       <button class="glass-btn secondary" id="modalRestart">Reiniciar</button>
       <button class="glass-btn" id="modalNew">Nueva partida</button>
@@ -139,7 +141,7 @@
 
 <script type="module">
   import { initializeApp }                           from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDppvzV2M4jM-PXaCCAsY6o8IXDKn8O9FQ",
@@ -154,8 +156,11 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  let roomId = null, mySymbol = null, myName = '', scores = { X: 0, O: 0 };
   const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+  let roomId   = null;
+  let mySymbol = null;
+  let myName   = '';
 
   const boardEl    = document.getElementById('board');
   const statusEl   = document.getElementById('statusText');
@@ -165,6 +170,7 @@
   const overlay    = document.getElementById('overlay');
   const modalEmoji = document.getElementById('modalEmoji');
   const modalTitle = document.getElementById('modalTitle');
+  const modalSub   = document.getElementById('modalSub');
 
   // Construir tablero
   for (let i = 0; i < 9; i++) {
@@ -174,9 +180,8 @@
     cell.addEventListener('click', () => handleClick(i));
     boardEl.appendChild(cell);
   }
-  const cells = () => [...boardEl.querySelectorAll('.cell')];
 
-  // Unirse a sala — leer estado primero, luego suscribirse
+  // ── Unirse a sala ────────────────────────────────────────
   document.getElementById('joinBtn').onclick = async () => {
     const name = document.getElementById('nameInput').value.trim();
     const room = document.getElementById('roomInput').value.trim().toUpperCase();
@@ -184,61 +189,65 @@
     myName = name;
     roomId = room;
 
-    // Leer estado actual una sola vez para asignar símbolo
-    const snap0 = await new Promise(res => onValue(ref(db, 'rooms/' + roomId), res, { onlyOnce: true }));
-    const d0 = snap0.val();
+    const snap = await get(ref(db, 'rooms/' + roomId));
+    const data = snap.val();
 
-    if (!d0) {
+    if (!data) {
       // Sala nueva → soy X
       mySymbol = 'X';
       await set(ref(db, 'rooms/' + roomId), {
         board: ['','','','','','','','',''],
-        turn: 'X', status: 'waiting',
-        players: { X: myName },
+        turn: 'X',
+        status: 'waiting',
+        nextStarter: 'X',
+        players: { X: myName, O: '' },
         scores: { X: 0, O: 0 }
       });
-      statusEl.textContent = 'Sala ' + roomId + ' creada. Esperando a tu rival\u2026';
-    } else if (d0.players && d0.players.X === myName) {
-      // Reconectar como X
-      mySymbol = 'X';
-    } else if (d0.players && d0.players.O === myName) {
-      // Reconectar como O
-      mySymbol = 'O';
-    } else if (!d0.players || !d0.players.O) {
+      statusEl.textContent = 'Sala ' + roomId + ' creada. Esperando rival\u2026';
+    } else if (data.players && data.players.X === myName) {
+      mySymbol = 'X'; // reconectar
+    } else if (data.players && data.players.O === myName) {
+      mySymbol = 'O'; // reconectar
+    } else if (!data.players || !data.players.O) {
       // Unirse como O
       mySymbol = 'O';
-      await update(ref(db, 'rooms/' + roomId + '/players'), { O: myName });
-      await update(ref(db, 'rooms/' + roomId), { status: 'playing' });
+      await update(ref(db, 'rooms/' + roomId), {
+        'players/O': myName,
+        status: 'playing'
+      });
     } else {
-      statusEl.textContent = 'La sala est\u00e1 llena.';
+      statusEl.textContent = 'Sala llena.';
       return;
     }
 
-    // Suscribirse a cambios en tiempo real
+    // Suscribirse a cambios
     onValue(ref(db, 'rooms/' + roomId), snap => {
       renderGame(snap.val());
     });
   };
 
+  // ── Renderizar ───────────────────────────────────────────
   function renderGame(data) {
     if (!data) return;
     const board   = data.board   || ['','','','','','','','',''];
     const turn    = data.turn    || 'X';
     const players = data.players || {};
-    scores = data.scores || { X: 0, O: 0 };
+    const scores  = data.scores  || { X: 0, O: 0 };
 
-    // Actualizar puntaje con nombres
-    scoreXEl.textContent = (players.X || 'X') + ': ' + scores.X;
-    scoreOEl.textContent = (players.O || 'O') + ': ' + scores.O;
+    // Puntaje con nombres reales
+    const nameX = players.X || 'X';
+    const nameO = players.O || 'O';
+    scoreXEl.textContent = nameX + ': ' + scores.X;
+    scoreOEl.textContent = nameO + ': ' + scores.O;
 
-    // Status de sala
-    if (data.status === 'waiting' && !players.O) {
-      statusEl.textContent = 'Sala ' + roomId + ' \u2014 esperando oponente\u2026';
+    // Status
+    if (data.status === 'waiting') {
+      statusEl.textContent = 'Sala ' + roomId + ' \u2014 esperando rival\u2026';
     } else if (mySymbol) {
       statusEl.textContent = 'Sala ' + roomId + ' \u2014 jug\u00e1s como ' + mySymbol;
     }
 
-    // Detectar celdas ganadoras
+    // Detectar ganador
     let winCells = [];
     for (const combo of WINS) {
       if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
@@ -246,68 +255,91 @@
       }
     }
 
-    cells().forEach((cell, i) => {
+    // Pintar celdas
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach((cell, i) => {
       cell.textContent = board[i] === 'X' ? '\u2715' : board[i] === 'O' ? '\u25cb' : '';
-      cell.classList.toggle('taken', !!board[i]);
+      cell.classList.toggle('taken', board[i] !== '');
       cell.classList.toggle('win', winCells.includes(i));
     });
 
+    // Estado del juego
     if (data.status === 'won') {
-      const winName = players[data.winner] || data.winner;
-      const isMine  = data.winner === mySymbol;
-      showModal(isMine ? '\uD83C\uDF80' : '\uD83D\uDC94', isMine ? '\u00a1Ganaste, ' + myName + '!' : 'Gan\u00f3 ' + winName);
+      const winnerSym  = data.winner;
+      const winnerName = winnerSym === 'X' ? nameX : nameO;
+      const loserName  = winnerSym === 'X' ? nameO : nameX;
+      const isMine     = winnerSym === mySymbol;
+      const nextSym    = data.nextStarter || (winnerSym === 'X' ? 'O' : 'X');
+      const nextName   = nextSym === 'X' ? nameX : nameO;
+      showModal(
+        isMine ? '\uD83C\uDF80' : '\uD83D\uDC94',
+        isMine ? '\u00a1Ganaste, ' + myName + '!' : 'Gan\u00f3 ' + winnerName,
+        'Siguiente ronda empieza: ' + nextName + ' (' + nextSym + ')'
+      );
       turnEl.textContent = '';
     } else if (data.status === 'draw') {
-      showModal('\uD83E\uDD1D', '\u00a1Empate!');
+      const nextSym  = data.nextStarter || 'X';
+      const nextName = nextSym === 'X' ? nameX : nameO;
+      showModal('\uD83E\uDD1D', '\u00a1Empate!', 'Siguiente ronda empieza: ' + nextName + ' (' + nextSym + ')');
       turnEl.textContent = '';
     } else {
       overlay.classList.remove('show');
-      const isMyTurn = turn === mySymbol;
-      turnEl.textContent = isMyTurn ? 'Tu turno \u2728' : 'Turno de ' + (players[turn] || turn);
+      if (data.status === 'playing' || data.status === 'waiting') {
+        const isMyTurn = turn === mySymbol;
+        turnEl.textContent = isMyTurn ? 'Tu turno \u2728' : 'Turno de ' + (turn === 'X' ? nameX : nameO);
+      }
     }
   }
 
+  // ── Click celda ──────────────────────────────────────────
   async function handleClick(i) {
     if (!roomId || !mySymbol) return;
-    const snap = await new Promise(res => onValue(ref(db, 'rooms/' + roomId), res, { onlyOnce: true }));
+
+    const snap = await get(ref(db, 'rooms/' + roomId));
     const data = snap.val();
     if (!data) return;
-    const board = data.board || ['','','','','','','','',''];
-    const bothJoined = data.players && data.players.X && data.players.O;
-    if (!bothJoined) return;
-    if (data.status === 'won' || data.status === 'draw') return;
-    if (data.turn !== mySymbol) return;
-    if (board[i]) return;
-    // Si todavía dice waiting pero los dos ya están, pasarlo a playing
-    if (data.status === 'waiting') {
-      await update(ref(db, 'rooms/' + roomId), { status: 'playing' });
-    }
 
-    board[i] = mySymbol;
-    const nextTurn = mySymbol === 'X' ? 'O' : 'X';
+    const board   = data.board || ['','','','','','','','',''];
+    const players = data.players || {};
 
+    // Validaciones
+    if (!players.X || !players.O) return;          // falta alguien
+    if (data.status === 'won' || data.status === 'draw') return; // ronda terminada
+    if (data.status === 'waiting') return;          // todavia esperando
+    if (data.turn !== mySymbol) return;             // no es mi turno
+    if (board[i] !== '') return;                    // celda ocupada
+
+    // Hacer jugada
+    const newBoard = [...board];
+    newBoard[i] = mySymbol;
+
+    // Chequear ganador
     let winner = null;
     for (const combo of WINS) {
-      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
-        winner = board[combo[0]]; break;
+      if (newBoard[combo[0]] && newBoard[combo[0]] === newBoard[combo[1]] && newBoard[combo[1]] === newBoard[combo[2]]) {
+        winner = newBoard[combo[0]]; break;
       }
     }
-    const draw = !winner && board.every(c => c !== '');
+    const draw = !winner && newBoard.every(c => c !== '');
 
-    // Scores directo de Firebase
-    const currentScores = data.scores || { X: 0, O: 0 };
-    const newScores = { X: Number(currentScores.X) || 0, O: Number(currentScores.O) || 0 };
-    if (winner) newScores[winner] = newScores[winner] + 1;
+    // Scores actualizados
+    const scores = data.scores || { X: 0, O: 0 };
+    const newScores = { X: Number(scores.X) || 0, O: Number(scores.O) || 0 };
+    if (winner) newScores[winner]++;
 
-    // REGLA: el que PIERDE empieza la siguiente ronda
-    // Si gana X → O empieza. Si gana O → X empieza. Si empate → alterna.
+    // REGLA DE TURNO:
+    // Si gana X  → la siguiente ronda empieza O (el perdedor)
+    // Si gana O  → la siguiente ronda empieza X (el perdedor)
+    // Si empate  → alterna (el que NO empezó esta ronda)
     let nextStarter;
-    if (winner === 'X') nextStarter = 'O';
+    if (winner === 'X')      nextStarter = 'O';
     else if (winner === 'O') nextStarter = 'X';
-    else nextStarter = data.turn === 'X' ? 'O' : 'X'; // empate: alterna
+    else                     nextStarter = data.turn === 'X' ? 'O' : 'X';
+
+    const nextTurn = mySymbol === 'X' ? 'O' : 'X';
 
     await update(ref(db, 'rooms/' + roomId), {
-      board,
+      board: newBoard,
       turn: nextTurn,
       status: winner ? 'won' : draw ? 'draw' : 'playing',
       winner: winner || null,
@@ -316,22 +348,24 @@
     });
   }
 
+  // ── Reiniciar (conserva puntaje, aplica regla de turno) ──
   async function restartBoard() {
     if (!roomId) return;
     overlay.classList.remove('show');
-    const snap = await new Promise(res => onValue(ref(db, 'rooms/' + roomId), res, { onlyOnce: true }));
+    const snap = await get(ref(db, 'rooms/' + roomId));
     const data = snap.val();
-    // El que perdió empieza (guardado en nextStarter al terminar la ronda)
+    // El perdedor empieza (guardado en nextStarter)
     const starter = (data && data.nextStarter) ? data.nextStarter : 'X';
     await update(ref(db, 'rooms/' + roomId), {
       board: ['','','','','','','','',''],
       turn: starter,
       status: 'playing',
       winner: null,
-      nextStarter: null
+      nextStarter: starter  // se mantiene hasta que termine la ronda
     });
   }
 
+  // ── Nueva partida (resetea todo) ─────────────────────────
   async function newGame() {
     if (!roomId) return;
     overlay.classList.remove('show');
@@ -340,7 +374,7 @@
       turn: 'X',
       status: 'playing',
       winner: null,
-      loser: null,
+      nextStarter: 'X',
       scores: { X: 0, O: 0 }
     });
   }
@@ -350,16 +384,17 @@
   document.getElementById('modalRestart').onclick = restartBoard;
   document.getElementById('modalNew').onclick     = newGame;
 
-  function showModal(emoji, title) {
+  function showModal(emoji, title, sub) {
     modalEmoji.textContent = emoji;
     modalTitle.textContent = title;
+    modalSub.textContent   = sub || '';
     overlay.classList.add('show');
   }
 
-  // Lazos flotantes con mono.png
+  // ── Lazos flotantes ──────────────────────────────────────
   const layer = document.getElementById('bowsLayer');
   for (let i = 0; i < 18; i++) {
-    const div  = document.createElement('div');
+    const div   = document.createElement('div');
     div.className = 'bow';
     const size  = 60 + Math.random() * 80;
     const left  = Math.random() * 100;
