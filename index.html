@@ -273,9 +273,15 @@
     const data = snap.val();
     if (!data) return;
     const board = data.board || ['','','','','','','','',''];
-    if (data.status !== 'playing') return;
+    const bothJoined = data.players && data.players.X && data.players.O;
+    if (!bothJoined) return;
+    if (data.status === 'won' || data.status === 'draw') return;
     if (data.turn !== mySymbol) return;
     if (board[i]) return;
+    // Si todavía dice waiting pero los dos ya están, pasarlo a playing
+    if (data.status === 'waiting') {
+      await update(ref(db, 'rooms/' + roomId), { status: 'playing' });
+    }
 
     board[i] = mySymbol;
     const nextTurn = mySymbol === 'X' ? 'O' : 'X';
