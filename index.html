@@ -337,18 +337,23 @@
     const draw = !winner && board.every(c => c);
     const newScores = { ...scores };
     if (winner) newScores[winner] = (newScores[winner] || 0) + 1;
-    await update(ref(db, `rooms/${roomId}`), { board, turn: nextTurn, status: winner ? 'won' : draw ? 'draw' : 'playing', winner: winner || null, scores: newScores });
+    // El perdedor empieza la siguiente ronda
+    const loser = winner === 'X' ? 'O' : winner === 'O' ? 'X' : null;
+    await update(ref(db, `rooms/${roomId}`), { board, turn: nextTurn, status: winner ? 'won' : draw ? 'draw' : 'playing', winner: winner || null, loser: loser || null, scores: newScores });
   }
 
   async function restartBoard() {
     if (!roomId) return;
     overlay.classList.remove('show');
-    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: 'X', status: 'playing', winner: null });
+    const snap = await new Promise(res => onValue(ref(db, `rooms/${roomId}`), res, { onlyOnce: true }));
+    const data = snap.val();
+    const starter = data?.loser || 'X';
+    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: starter, status: 'playing', winner: null, loser: null });
   }
   async function newGame() {
     if (!roomId) return;
     overlay.classList.remove('show');
-    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: 'X', status: 'playing', winner: null, scores: { X: 0, O: 0 } });
+    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: 'X', status: 'playing', winner: null, loser: null, scores: { X: 0, O: 0 } });
   }
 
   document.getElementById('restartBtn').onclick  = restartBoard;
