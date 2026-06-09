@@ -22,7 +22,7 @@
 
     body {
       min-height: 100vh;
-      background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 30%, #fce4ec 60%, #fff0f5 100%);
+      background: #ffffff;
       font-family: 'DM Sans', sans-serif;
       display: flex;
       align-items: center;
@@ -45,13 +45,11 @@
       animation: floatBow linear infinite;
     }
 
-    .bow svg { width: 100%; height: 100%; }
-
     @keyframes floatBow {
-      0%   { transform: translateY(110vh) rotate(0deg);   opacity: 0; }
-      5%   { opacity: 0.55; }
-      90%  { opacity: 0.45; }
-      100% { transform: translateY(-20vh) rotate(25deg);  opacity: 0; }
+      0%   { transform: translateY(110vh) rotate(-8deg);  opacity: 0; }
+      6%   { opacity: 0.6; }
+      88%  { opacity: 0.5; }
+      100% { transform: translateY(-18vh) rotate(8deg);   opacity: 0; }
     }
 
     /* ── Card liquid-glass ── */
@@ -59,29 +57,27 @@
       position: relative;
       z-index: 10;
       width: min(92vw, 400px);
-      background: var(--glass-bg);
-      border: 1.5px solid var(--glass-border);
+      background: rgba(255, 240, 247, 0.22);
+      border: 1.5px solid rgba(255, 200, 225, 0.5);
       border-radius: 28px;
       padding: 28px 24px 24px;
-      backdrop-filter: blur(22px) saturate(180%);
-      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
       box-shadow:
-        0 8px 32px var(--glass-shadow),
-        inset 0 1px 0 rgba(255,255,255,0.6),
+        0 8px 32px rgba(200, 100, 150, 0.12),
+        inset 0 1px 0 rgba(255,255,255,0.7),
         inset 0 -1px 0 rgba(255,180,210,0.2);
     }
 
-    /* inner shimmer */
     .card::before {
       content: '';
       position: absolute;
       inset: 0;
       border-radius: 28px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, transparent 60%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.45) 0%, transparent 60%);
       pointer-events: none;
     }
 
-    /* ── Header ── */
     .header {
       display: flex;
       align-items: center;
@@ -97,14 +93,11 @@
       letter-spacing: 0.02em;
     }
 
-    .scoreboard {
-      display: flex;
-      gap: 8px;
-    }
+    .scoreboard { display: flex; gap: 8px; }
 
     .score-pill {
-      background: rgba(255,255,255,0.55);
-      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255, 200, 225, 0.5);
       border-radius: 50px;
       padding: 4px 12px;
       font-size: 0.8rem;
@@ -113,7 +106,6 @@
       backdrop-filter: blur(8px);
     }
 
-    /* ── Inputs sala ── */
     .room-row {
       display: flex;
       gap: 8px;
@@ -122,8 +114,8 @@
 
     .glass-input {
       flex: 1;
-      background: rgba(255,255,255,0.45);
-      border: 1.5px solid var(--glass-border);
+      background: rgba(255,255,255,0.5);
+      border: 1.5px solid rgba(255, 200, 225, 0.5);
       border-radius: 50px;
       padding: 8px 14px;
       font-size: 0.85rem;
@@ -136,11 +128,11 @@
     .glass-input::placeholder { color: var(--pink-mid); }
     .glass-input:focus {
       border-color: var(--pink-dark);
-      background: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.75);
     }
 
     .glass-btn {
-      background: rgba(196, 82, 122, 0.82);
+      background: rgba(196, 82, 122, 0.85);
       border: 1px solid rgba(255,255,255,0.35);
       border-radius: 50px;
       padding: 8px 16px;
@@ -157,13 +149,12 @@
     .glass-btn:active { transform: scale(0.96); }
 
     .glass-btn.secondary {
-      background: rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.5);
       color: var(--text-dark);
-      border-color: var(--glass-border);
+      border-color: rgba(255, 200, 225, 0.5);
     }
-    .glass-btn.secondary:hover { background: rgba(255,255,255,0.7); }
+    .glass-btn.secondary:hover { background: rgba(255,255,255,0.8); }
 
-    /* ── Status ── */
     .status-text {
       font-size: 0.8rem;
       color: var(--text-mid);
@@ -171,7 +162,6 @@
       min-height: 1.2em;
     }
 
-    /* ── Tablero ── */
     .board {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -181,8 +171,8 @@
 
     .cell {
       aspect-ratio: 1;
-      background: rgba(255,255,255,0.38);
-      border: 1.5px solid var(--glass-border);
+      background: rgba(255,255,255,0.42);
+      border: 1.5px solid rgba(255, 200, 225, 0.5);
       border-radius: 16px;
       display: flex;
       align-items: center;
@@ -191,17 +181,17 @@
       cursor: pointer;
       backdrop-filter: blur(10px);
       transition: background 0.15s, transform 0.1s, border-color 0.15s;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
       user-select: none;
     }
     .cell:hover:not(.taken) {
-      background: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.7);
       border-color: var(--pink-mid);
       transform: scale(1.04);
     }
     .cell.taken { cursor: default; }
     .cell.win {
-      background: rgba(196, 82, 122, 0.18);
+      background: rgba(196, 82, 122, 0.15);
       border-color: var(--pink-dark);
       animation: winPulse 0.5s ease;
     }
@@ -210,7 +200,6 @@
       50%      { transform: scale(1.08); }
     }
 
-    /* ── Footer botones ── */
     .footer-row {
       display: flex;
       align-items: center;
@@ -224,11 +213,10 @@
       flex: 1;
     }
 
-    /* ── Modal resultado ── */
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(252, 228, 236, 0.45);
+      background: rgba(255, 240, 247, 0.4);
       backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
@@ -241,13 +229,13 @@
     .overlay.show { opacity: 1; pointer-events: all; }
 
     .modal {
-      background: rgba(255,240,247,0.75);
-      border: 1.5px solid var(--glass-border);
+      background: rgba(255,245,250,0.8);
+      border: 1.5px solid rgba(255, 200, 225, 0.5);
       border-radius: 24px;
       padding: 32px 28px;
       text-align: center;
       backdrop-filter: blur(24px);
-      box-shadow: 0 16px 48px rgba(196,82,122,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+      box-shadow: 0 16px 48px rgba(196,82,122,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
       transform: scale(0.9);
       transition: transform 0.3s;
     }
@@ -266,10 +254,8 @@
 </head>
 <body>
 
-<!-- Lazos flotantes -->
 <div class="bows-layer" id="bowsLayer"></div>
 
-<!-- Card principal -->
 <div class="card">
   <div class="header">
     <span class="title">gato 🎀</span>
@@ -287,9 +273,7 @@
 
   <p class="status-text" id="statusText">Sin sala</p>
 
-  <div class="board" id="board">
-    <!-- 9 celdas -->
-  </div>
+  <div class="board" id="board"></div>
 
   <div class="footer-row">
     <span class="turn-label" id="turnLabel">Turno de X</span>
@@ -298,7 +282,6 @@
   </div>
 </div>
 
-<!-- Modal resultado -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="modal-emoji" id="modalEmoji">🎀</div>
@@ -310,12 +293,10 @@
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp }                            from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
   import { getDatabase, ref, set, onValue, update }  from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
-  // ── Config ──────────────────────────────────────────
   const firebaseConfig = {
     apiKey: "AIzaSyDppvzV2M4jM-PXaCCAsY6o8IXDKn8O9FQ",
     authDomain: "gato-3daae.firebaseapp.com",
@@ -328,15 +309,9 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // ── Estado local ────────────────────────────────────
-  let roomId   = null;
-  let mySymbol = null;   // 'X' | 'O'
-  let myName   = '';
-  let scores   = { X: 0, O: 0 };
-
+  let roomId = null, mySymbol = null, myName = '', scores = { X: 0, O: 0 };
   const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
-  // ── DOM ─────────────────────────────────────────────
   const boardEl    = document.getElementById('board');
   const statusEl   = document.getElementById('statusText');
   const turnEl     = document.getElementById('turnLabel');
@@ -346,7 +321,6 @@
   const modalEmoji = document.getElementById('modalEmoji');
   const modalTitle = document.getElementById('modalTitle');
 
-  // ── Construir tablero ───────────────────────────────
   for (let i = 0; i < 9; i++) {
     const cell = document.createElement('div');
     cell.className = 'cell';
@@ -356,72 +330,44 @@
   }
   const cells = () => [...boardEl.querySelectorAll('.cell')];
 
-  // ── Unirse a sala ───────────────────────────────────
-  document.getElementById('joinBtn').onclick = async () => {
+  document.getElementById('joinBtn').onclick = () => {
     const name = document.getElementById('nameInput').value.trim();
     const room = document.getElementById('roomInput').value.trim().toUpperCase();
     if (!name || !room) { statusEl.textContent = 'Completá tu nombre y el código de sala.'; return; }
-
-    myName = name;
-    roomId = room;
+    myName = name; roomId = room;
     const roomRef = ref(db, `rooms/${roomId}`);
-
-    // Leer sala actual
     onValue(roomRef, snap => {
       const data = snap.val();
       if (!data) {
-        // Crear sala como X
         mySymbol = 'X';
-        set(roomRef, {
-          board: Array(9).fill(''),
-          turn: 'X',
-          status: 'waiting',
-          players: { X: myName },
-          scores: { X: 0, O: 0 }
-        });
+        set(roomRef, { board: Array(9).fill(''), turn: 'X', status: 'waiting', players: { X: myName }, scores: { X: 0, O: 0 } });
         statusEl.textContent = `Sala ${roomId} creada. Esperando a tu rival…`;
       } else {
-        // Unirse como O si hay lugar
         if (!mySymbol) {
-          if (data.players?.O) {
-            // Sala llena, solo espectador
-            mySymbol = data.players.X === myName ? 'X' : null;
-          } else {
-            mySymbol = 'O';
-            update(ref(db, `rooms/${roomId}/players`), { O: myName });
-          }
+          if (data.players?.O) { mySymbol = data.players.X === myName ? 'X' : null; }
+          else { mySymbol = 'O'; update(ref(db, `rooms/${roomId}/players`), { O: myName }); }
         }
         renderGame(data);
       }
-    }, { onlyOnce: false });
+    });
   };
 
-  // ── Renderizar estado ────────────────────────────────
   function renderGame(data) {
     if (!data) return;
-
-    const board   = data.board   || Array(9).fill('');
-    const turn    = data.turn    || 'X';
-    const status  = data.status  || 'playing';
+    const board = data.board || Array(9).fill('');
+    const turn  = data.turn  || 'X';
     const players = data.players || {};
-    scores        = data.scores  || { X: 0, O: 0 };
+    scores = data.scores || { X: 0, O: 0 };
 
     scoreXEl.textContent = `${players.X || 'X'}: ${scores.X}`;
     scoreOEl.textContent = `${players.O || 'O'}: ${scores.O}`;
 
-    if (status === 'waiting' && !players.O) {
-      statusEl.textContent = `Sala ${roomId} — esperando oponente…`;
-    } else if (mySymbol) {
-      statusEl.textContent = `Sala ${roomId} — jugás como ${mySymbol}`;
-    }
+    if (data.status === 'waiting' && !players.O) statusEl.textContent = `Sala ${roomId} — esperando oponente…`;
+    else if (mySymbol) statusEl.textContent = `Sala ${roomId} — jugás como ${mySymbol}`;
 
-    // Detectar ganador para resaltar
     let winCells = [];
     for (const combo of WINS) {
-      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
-        winCells = combo;
-        break;
-      }
+      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) { winCells = combo; break; }
     }
 
     cells().forEach((cell, i) => {
@@ -430,131 +376,105 @@
       cell.classList.toggle('win', winCells.includes(i));
     });
 
-    if (status === 'won') {
-      const winner = data.winner;
-      const winName = players[winner] || winner;
-      const isMine  = winner === mySymbol;
-      showModal(isMine ? '🎀' : '💔', isMine ? `¡Ganaste, ${myName}!` : `Ganó ${winName}`);
+    if (data.status === 'won') {
+      const winName = players[data.winner] || data.winner;
+      showModal(data.winner === mySymbol ? '🎀' : '💔', data.winner === mySymbol ? `¡Ganaste, ${myName}!` : `Ganó ${winName}`);
       turnEl.textContent = '';
-    } else if (status === 'draw') {
-      showModal('🤝', '¡Empate!');
-      turnEl.textContent = '';
+    } else if (data.status === 'draw') {
+      showModal('🤝', '¡Empate!'); turnEl.textContent = '';
     } else {
       overlay.classList.remove('show');
-      const isMyTurn = turn === mySymbol;
-      turnEl.textContent = isMyTurn ? 'Tu turno ✨' : `Turno de ${players[turn] || turn}`;
+      turnEl.textContent = turn === mySymbol ? 'Tu turno ✨' : `Turno de ${players[turn] || turn}`;
     }
   }
 
-  // ── Click en celda ───────────────────────────────────
   async function handleClick(i) {
     if (!roomId || !mySymbol) return;
-
     const snap = await new Promise(res => onValue(ref(db, `rooms/${roomId}`), res, { onlyOnce: true }));
-    const data = snap.val();
-    if (!data) return;
-
+    const data = snap.val(); if (!data) return;
     const board = data.board || Array(9).fill('');
-    const turn  = data.turn  || 'X';
-
-    if (data.status !== 'playing' && data.status !== 'waiting') return;
-    if (data.status === 'waiting' && !data.players?.O) return;
-    if (turn !== mySymbol) return;
-    if (board[i]) return;
-
+    if ((data.status !== 'playing' && data.status !== 'waiting') || (data.status === 'waiting' && !data.players?.O)) return;
+    if (data.turn !== mySymbol || board[i]) return;
     board[i] = mySymbol;
     const nextTurn = mySymbol === 'X' ? 'O' : 'X';
-
-    // Revisar ganador
     let winner = null;
     for (const combo of WINS) {
-      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
-        winner = board[combo[0]]; break;
-      }
+      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) { winner = board[combo[0]]; break; }
     }
     const draw = !winner && board.every(c => c);
-
     const newScores = { ...scores };
     if (winner) newScores[winner] = (newScores[winner] || 0) + 1;
-
-    await update(ref(db, `rooms/${roomId}`), {
-      board,
-      turn: nextTurn,
-      status: winner ? 'won' : draw ? 'draw' : 'playing',
-      winner: winner || null,
-      scores: newScores
-    });
+    await update(ref(db, `rooms/${roomId}`), { board, turn: nextTurn, status: winner ? 'won' : draw ? 'draw' : 'playing', winner: winner || null, scores: newScores });
   }
 
-  // ── Reiniciar tablero ────────────────────────────────
   async function restartBoard() {
     if (!roomId) return;
     overlay.classList.remove('show');
-    await update(ref(db, `rooms/${roomId}`), {
-      board: Array(9).fill(''),
-      turn: 'X',
-      status: 'playing',
-      winner: null
-    });
+    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: 'X', status: 'playing', winner: null });
   }
-
-  // ── Partida nueva (resetea puntaje) ──────────────────
   async function newGame() {
     if (!roomId) return;
     overlay.classList.remove('show');
-    await update(ref(db, `rooms/${roomId}`), {
-      board: Array(9).fill(''),
-      turn: 'X',
-      status: 'playing',
-      winner: null,
-      scores: { X: 0, O: 0 }
-    });
+    await update(ref(db, `rooms/${roomId}`), { board: Array(9).fill(''), turn: 'X', status: 'playing', winner: null, scores: { X: 0, O: 0 } });
   }
 
-  document.getElementById('restartBtn').onclick = restartBoard;
-  document.getElementById('newGameBtn').onclick  = newGame;
+  document.getElementById('restartBtn').onclick  = restartBoard;
+  document.getElementById('newGameBtn').onclick   = newGame;
   document.getElementById('modalRestart').onclick = restartBoard;
   document.getElementById('modalNew').onclick     = newGame;
 
-  // ── Modal ────────────────────────────────────────────
   function showModal(emoji, title) {
     modalEmoji.textContent = emoji;
     modalTitle.textContent = title;
     overlay.classList.add('show');
   }
 
-  // ── Lazos flotantes ──────────────────────────────────
-  const layer = document.getElementById('bowsLayer');
-  const BOW_SVG = (color, size) => `
-    <svg viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*0.625}">
-      <ellipse cx="22" cy="25" rx="20" ry="13" fill="${color}" opacity="0.85"/>
-      <ellipse cx="58" cy="25" rx="20" ry="13" fill="${color}" opacity="0.85"/>
-      <ellipse cx="22" cy="25" rx="12" ry="8"  fill="${color}" opacity="0.5"/>
-      <ellipse cx="58" cy="25" rx="12" ry="8"  fill="${color}" opacity="0.5"/>
-      <ellipse cx="40" cy="25" rx="7"  ry="7"  fill="${color}"/>
-      <path d="M40 25 Q50 35 60 45" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M40 25 Q30 35 20 45" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round"/>
+  // ── Lazos estilo acuarela en SVG ──────────────────────
+  function makeBowSVG(color, opacity) {
+    return `<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+      <g fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}">
+        <!-- ala izquierda -->
+        <path d="M58 44 C48 36 28 28 18 32 C10 36 12 46 20 50 C30 55 50 50 58 44Z"
+              fill="${color}" stroke="none" opacity="0.9"/>
+        <path d="M58 44 C50 40 34 34 22 36 C15 38 16 45 23 48 C34 52 50 48 58 44"
+              fill="${color}" stroke="none" opacity="0.4"/>
+        <!-- ala derecha -->
+        <path d="M62 44 C72 36 92 28 102 32 C110 36 108 46 100 50 C90 55 70 50 62 44Z"
+              fill="${color}" stroke="none" opacity="0.9"/>
+        <path d="M62 44 C70 40 86 34 98 36 C105 38 104 45 97 48 C86 52 70 48 62 44"
+              fill="${color}" stroke="none" opacity="0.4"/>
+        <!-- nudo central -->
+        <ellipse cx="60" cy="44" rx="7" ry="6" fill="${color}" opacity="1"/>
+        <ellipse cx="60" cy="44" rx="4" ry="3.5" fill="${color}" opacity="0.5"/>
+        <!-- cinta izquierda que cae -->
+        <path d="M55 50 C50 58 44 66 40 76 C38 82 42 86 44 84"
+              stroke="${color}" stroke-width="4" fill="none" opacity="0.85"/>
+        <path d="M55 50 C51 57 46 64 43 73 C41 79 44 83 46 81"
+              stroke="${color}" stroke-width="2" fill="none" opacity="0.4"/>
+        <!-- cinta derecha que cae -->
+        <path d="M65 50 C70 58 76 66 80 76 C82 82 78 86 76 84"
+              stroke="${color}" stroke-width="4" fill="none" opacity="0.85"/>
+        <path d="M65 50 C69 57 74 64 77 73 C79 79 76 83 74 81"
+              stroke="${color}" stroke-width="2" fill="none" opacity="0.4"/>
+      </g>
     </svg>`;
+  }
 
-  const colors = ['#f48fb1','#f06292','#e91e8c','#fce4ec','#f8bbd0','#d81b60'];
+  const layer = document.getElementById('bowsLayer');
+  const pinks = ['#f4a7c0','#f48fb1','#f06292','#e8a0bf','#fad4e4','#e991b5'];
 
-  for (let i = 0; i < 18; i++) {
-    const div  = document.createElement('div');
+  for (let i = 0; i < 16; i++) {
+    const div   = document.createElement('div');
     div.className = 'bow';
-    const size  = 40 + Math.random() * 70;
-    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size  = 55 + Math.random() * 75;
+    const color = pinks[Math.floor(Math.random() * pinks.length)];
+    const op    = 0.45 + Math.random() * 0.3;
     const left  = Math.random() * 100;
-    const dur   = 10 + Math.random() * 16;
+    const dur   = 12 + Math.random() * 14;
     const delay = -(Math.random() * dur);
 
-    div.style.cssText = `
-      left: ${left}%;
-      width: ${size}px;
-      height: ${size * 0.625}px;
-      animation-duration: ${dur}s;
-      animation-delay: ${delay}s;
-    `;
-    div.innerHTML = BOW_SVG(color, size);
+    div.style.cssText = `left:${left}%;width:${size}px;height:${size*0.75}px;animation-duration:${dur}s;animation-delay:${delay}s;`;
+    div.innerHTML = makeBowSVG(color, op);
     layer.appendChild(div);
   }
 </script>
