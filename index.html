@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Gato 🎀</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital@1&display=swap');
@@ -99,11 +102,19 @@
     .modal-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.4rem; color: var(--pink-dark); margin-bottom: 6px; }
     .modal-sub { font-size: 0.8rem; color: var(--text-mid); margin-bottom: 16px; }
     .modal-btns { display: flex; gap: 10px; justify-content: center; }
+    .version-badge {
+      position: fixed; bottom: 8px; right: 10px; z-index: 50;
+      font-size: 0.7rem; color: var(--pink-mid); font-family: 'DM Sans', sans-serif;
+      background: rgba(255,255,255,0.5); padding: 2px 8px; border-radius: 50px;
+      border: 1px solid var(--glass-border);
+    }
   </style>
 </head>
 <body>
 
 <div class="bows-layer" id="bowsLayer"></div>
+
+<div class="version-badge">v3 · contador + reglas</div>
 
 <div class="card">
   <div class="header">
