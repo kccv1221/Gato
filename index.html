@@ -293,16 +293,22 @@
       }
     }
     const draw = !winner && board.every(c => c !== '');
-    const newScores = { X: scores.X, O: scores.O };
-    if (winner) newScores[winner] = (newScores[winner] || 0) + 1;
+
+    // Scores directo de Firebase para no perder nada
+    const currentScores = data.scores || { X: 0, O: 0 };
+    const newScores = { X: Number(currentScores.X) || 0, O: Number(currentScores.O) || 0 };
+    if (winner) newScores[winner] = newScores[winner] + 1;
+
+    // El perdedor empieza la siguiente ronda; en empate alterna
     const loser = winner === 'X' ? 'O' : winner === 'O' ? 'X' : null;
+    const nextStarter = loser ? loser : (mySymbol === 'X' ? 'O' : 'X');
 
     await update(ref(db, 'rooms/' + roomId), {
       board,
       turn: nextTurn,
       status: winner ? 'won' : draw ? 'draw' : 'playing',
       winner: winner || null,
-      loser: loser || null,
+      nextStarter: nextStarter,
       scores: newScores
     });
   }
@@ -312,14 +318,14 @@
     overlay.classList.remove('show');
     const snap = await new Promise(res => onValue(ref(db, 'rooms/' + roomId), res, { onlyOnce: true }));
     const data = snap.val();
-    // El perdedor empieza la siguiente ronda
-    const starter = (data && data.loser) ? data.loser : 'X';
+    // El perdedor empieza la siguiente ronda (guardado en nextStarter)
+    const starter = (data && data.nextStarter) ? data.nextStarter : 'X';
     await update(ref(db, 'rooms/' + roomId), {
       board: ['','','','','','','','',''],
       turn: starter,
       status: 'playing',
       winner: null,
-      loser: null
+      nextStarter: null
     });
   }
 
