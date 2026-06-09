@@ -49,13 +49,15 @@
     .score-pill {
       background: rgba(255,255,255,0.6); border: 1px solid var(--glass-border);
       border-radius: 50px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; color: var(--text-dark);
+      transition: background 0.3s, transform 0.3s;
     }
+    .score-pill.bump { background: rgba(196,82,122,0.25); transform: scale(1.15); }
     .room-row { display: flex; gap: 8px; margin-bottom: 10px; }
     .glass-input {
       flex: 1; background: rgba(255,255,255,0.5); border: 1.5px solid var(--glass-border);
       border-radius: 50px; padding: 8px 14px; font-size: 0.85rem;
       font-family: 'DM Sans', sans-serif; color: var(--text-dark); outline: none;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.2s, background 0.2s; min-width: 0;
     }
     .glass-input::placeholder { color: var(--pink-mid); }
     .glass-input:focus { border-color: var(--pink-dark); background: rgba(255,255,255,0.75); }
@@ -76,7 +78,7 @@
       border-radius: 16px; display: flex; align-items: center; justify-content: center;
       font-size: 2.2rem; cursor: pointer; backdrop-filter: blur(10px);
       transition: background 0.15s, transform 0.1s, border-color 0.15s;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); user-select: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); user-select: none; color: var(--pink-dark);
     }
     .cell:hover:not(.taken) { background: rgba(255,255,255,0.7); border-color: var(--pink-mid); transform: scale(1.04); }
     .cell.taken { cursor: default; }
@@ -91,7 +93,7 @@
     }
     .overlay.show { opacity: 1; pointer-events: all; }
     .modal {
-      background: rgba(255,245,250,0.9); border: 1.5px solid var(--glass-border);
+      background: rgba(255,245,250,0.95); border: 1.5px solid var(--glass-border);
       border-radius: 24px; padding: 32px 28px; text-align: center;
       backdrop-filter: blur(24px);
       box-shadow: 0 16px 48px rgba(196,82,122,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
@@ -104,17 +106,23 @@
     .modal-btns { display: flex; gap: 10px; justify-content: center; }
     .version-badge {
       position: fixed; bottom: 8px; right: 10px; z-index: 50;
-      font-size: 0.7rem; color: var(--pink-mid); font-family: 'DM Sans', sans-serif;
+      font-size: 0.65rem; color: var(--pink-mid); font-family: 'DM Sans', sans-serif;
       background: rgba(255,255,255,0.5); padding: 2px 8px; border-radius: 50px;
       border: 1px solid var(--glass-border);
+    }
+    .debug {
+      position: fixed; bottom: 8px; left: 10px; z-index: 50;
+      font-size: 0.6rem; color: #999; font-family: monospace;
+      background: rgba(255,255,255,0.6); padding: 4px 8px; border-radius: 8px;
+      border: 1px solid #eee; max-width: 60vw; white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
 
 <div class="bows-layer" id="bowsLayer"></div>
-
-<div class="version-badge">v3 · contador + reglas</div>
+<div class="version-badge">v4 · string-board</div>
+<div class="debug" id="debug">debug: sin sala</div>
 
 <div class="card">
   <div class="header">
@@ -151,7 +159,7 @@
 </div>
 
 <script type="module">
-  import { initializeApp }                           from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+  import { initializeApp }                               from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
   import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
   const firebaseConfig = {
@@ -167,11 +175,11 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const WINS  = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const EMPTY = '---------';   // board = string de 9 chars, '-' = vacio
 
-  let roomId   = null;
-  let mySymbol = null;
-  let myName   = '';
+  let roomId = null, mySymbol = null, myName = '';
+  let prevScoreX = 0, prevScoreO = 0;
 
   const boardEl    = document.getElementById('board');
   const statusEl   = document.getElementById('statusText');
@@ -182,8 +190,8 @@
   const modalEmoji = document.getElementById('modalEmoji');
   const modalTitle = document.getElementById('modalTitle');
   const modalSub   = document.getElementById('modalSub');
+  const debugEl    = document.getElementById('debug');
 
-  // Construir tablero
   for (let i = 0; i < 9; i++) {
     const cell = document.createElement('div');
     cell.className = 'cell';
@@ -192,7 +200,30 @@
     boardEl.appendChild(cell);
   }
 
-  // ── Unirse a sala ────────────────────────────────────────
+  function checkWinner(b) {
+    for (const combo of WINS) {
+      const [a,c,d] = combo;
+      if (b[a] !== '-' && b[a] === b[c] && b[c] === b[d]) return b[a];
+    }
+    return null;
+  }
+
+  // Normaliza el board venga como string, array u objeto desde Firebase
+  function normalizeBoard(raw) {
+    if (typeof raw === 'string' && raw.length === 9) return raw;
+    if (Array.isArray(raw)) {
+      let s = '';
+      for (let i = 0; i < 9; i++) s += (raw[i] === 'X' || raw[i] === 'O') ? raw[i] : '-';
+      return s;
+    }
+    if (raw && typeof raw === 'object') {
+      let s = '';
+      for (let i = 0; i < 9; i++) { const v = raw[i]; s += (v === 'X' || v === 'O') ? v : '-'; }
+      return s;
+    }
+    return EMPTY;
+  }
+
   document.getElementById('joinBtn').onclick = async () => {
     const name = document.getElementById('nameInput').value.trim();
     const room = document.getElementById('roomInput').value.trim().toUpperCase();
@@ -204,189 +235,149 @@
     const data = snap.val();
 
     if (!data) {
-      // Sala nueva → soy X
       mySymbol = 'X';
       await set(ref(db, 'rooms/' + roomId), {
-        board: ['','','','','','','','',''],
-        turn: 'X',
-        status: 'waiting',
-        nextStarter: 'X',
-        players: { X: myName, O: '' },
-        scores: { X: 0, O: 0 }
+        board: EMPTY, turn: 'X', status: 'waiting',
+        nextStarter: 'X', winner: 'none',
+        nameX: myName, nameO: '',
+        scoreX: 0, scoreO: 0
       });
       statusEl.textContent = 'Sala ' + roomId + ' creada. Esperando rival\u2026';
-    } else if (data.players && data.players.X === myName) {
-      mySymbol = 'X'; // reconectar
-    } else if (data.players && data.players.O === myName) {
-      mySymbol = 'O'; // reconectar
-    } else if (!data.players || !data.players.O) {
-      // Unirse como O
+    } else if (data.nameX === myName) {
+      mySymbol = 'X';
+    } else if (data.nameO === myName) {
       mySymbol = 'O';
-      await update(ref(db, 'rooms/' + roomId), {
-        'players/O': myName,
-        status: 'playing'
-      });
+    } else if (!data.nameO) {
+      mySymbol = 'O';
+      await update(ref(db, 'rooms/' + roomId), { nameO: myName, status: 'playing' });
     } else {
       statusEl.textContent = 'Sala llena.';
       return;
     }
 
-    // Suscribirse a cambios
-    onValue(ref(db, 'rooms/' + roomId), snap => {
-      renderGame(snap.val());
-    });
+    onValue(ref(db, 'rooms/' + roomId), snap => renderGame(snap.val()));
   };
 
-  // ── Renderizar ───────────────────────────────────────────
   function renderGame(data) {
     if (!data) return;
-    const board   = data.board   || ['','','','','','','','',''];
-    const turn    = data.turn    || 'X';
-    const players = data.players || {};
-    const scores  = data.scores  || { X: 0, O: 0 };
+    const board  = normalizeBoard(data.board);
+    const turn   = data.turn || 'X';
+    const nameX  = data.nameX || 'X';
+    const nameO  = data.nameO || 'O';
+    const scoreX = Number(data.scoreX) || 0;
+    const scoreO = Number(data.scoreO) || 0;
+    const status = data.status || 'playing';
+    const winner = (data.winner && data.winner !== 'none') ? data.winner : null;
+    const nextStarter = data.nextStarter || 'X';
 
-    // Puntaje con nombres reales
-    const nameX = players.X || 'X';
-    const nameO = players.O || 'O';
-    scoreXEl.textContent = nameX + ': ' + scores.X;
-    scoreOEl.textContent = nameO + ': ' + scores.O;
+    // Debug visible
+    debugEl.textContent = 'turn:' + turn + ' status:' + status + ' win:' + (winner||'-') +
+                          ' next:' + nextStarter + ' sX:' + scoreX + ' sO:' + scoreO +
+                          ' yo:' + (mySymbol||'-');
 
-    // Status
-    if (data.status === 'waiting') {
-      statusEl.textContent = 'Sala ' + roomId + ' \u2014 esperando rival\u2026';
-    } else if (mySymbol) {
-      statusEl.textContent = 'Sala ' + roomId + ' \u2014 jug\u00e1s como ' + mySymbol;
-    }
+    // Puntaje con animacion al cambiar
+    scoreXEl.textContent = nameX + ': ' + scoreX;
+    scoreOEl.textContent = nameO + ': ' + scoreO;
+    if (scoreX !== prevScoreX) { scoreXEl.classList.add('bump'); setTimeout(()=>scoreXEl.classList.remove('bump'),400); prevScoreX = scoreX; }
+    if (scoreO !== prevScoreO) { scoreOEl.classList.add('bump'); setTimeout(()=>scoreOEl.classList.remove('bump'),400); prevScoreO = scoreO; }
 
-    // Detectar ganador
-    let winCells = [];
-    for (const combo of WINS) {
-      if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
-        winCells = combo; break;
-      }
-    }
+    if (status === 'waiting') statusEl.textContent = 'Sala ' + roomId + ' \u2014 esperando rival\u2026';
+    else if (mySymbol)        statusEl.textContent = 'Sala ' + roomId + ' \u2014 jug\u00e1s como ' + mySymbol;
 
-    // Pintar celdas
+    const winLine = winner ? (WINS.find(c => board[c[0]]!=='-' && board[c[0]]===board[c[1]] && board[c[1]]===board[c[2]]) || []) : [];
+
     const cells = boardEl.querySelectorAll('.cell');
     cells.forEach((cell, i) => {
       cell.textContent = board[i] === 'X' ? '\u2715' : board[i] === 'O' ? '\u25cb' : '';
-      cell.classList.toggle('taken', board[i] !== '');
-      cell.classList.toggle('win', winCells.includes(i));
+      cell.classList.toggle('taken', board[i] !== '-');
+      cell.classList.toggle('win', winLine.includes(i));
     });
 
-    // Estado del juego
-    if (data.status === 'won') {
-      const winnerSym  = data.winner;
-      const winnerName = winnerSym === 'X' ? nameX : nameO;
-      const loserName  = winnerSym === 'X' ? nameO : nameX;
-      const isMine     = winnerSym === mySymbol;
-      const nextSym    = data.nextStarter || (winnerSym === 'X' ? 'O' : 'X');
-      const nextName   = nextSym === 'X' ? nameX : nameO;
+    if (status === 'won') {
+      const winnerName = winner === 'X' ? nameX : nameO;
+      const isMine     = winner === mySymbol;
+      const nextName   = nextStarter === 'X' ? nameX : nameO;
       showModal(
         isMine ? '\uD83C\uDF80' : '\uD83D\uDC94',
         isMine ? '\u00a1Ganaste, ' + myName + '!' : 'Gan\u00f3 ' + winnerName,
-        'Siguiente ronda empieza: ' + nextName + ' (' + nextSym + ')'
+        'Empieza la siguiente: ' + nextName + ' (' + nextStarter + ')'
       );
       turnEl.textContent = '';
-    } else if (data.status === 'draw') {
-      const nextSym  = data.nextStarter || 'X';
-      const nextName = nextSym === 'X' ? nameX : nameO;
-      showModal('\uD83E\uDD1D', '\u00a1Empate!', 'Siguiente ronda empieza: ' + nextName + ' (' + nextSym + ')');
+    } else if (status === 'draw') {
+      const nextName = nextStarter === 'X' ? nameX : nameO;
+      showModal('\uD83E\uDD1D', '\u00a1Empate!', 'Empieza la siguiente: ' + nextName + ' (' + nextStarter + ')');
       turnEl.textContent = '';
     } else {
       overlay.classList.remove('show');
-      if (data.status === 'playing' || data.status === 'waiting') {
-        const isMyTurn = turn === mySymbol;
-        turnEl.textContent = isMyTurn ? 'Tu turno \u2728' : 'Turno de ' + (turn === 'X' ? nameX : nameO);
-      }
+      const isMyTurn = turn === mySymbol;
+      turnEl.textContent = isMyTurn ? 'Tu turno \u2728' : 'Turno de ' + (turn === 'X' ? nameX : nameO);
     }
   }
 
-  // ── Click celda ──────────────────────────────────────────
   async function handleClick(i) {
     if (!roomId || !mySymbol) return;
-
     const snap = await get(ref(db, 'rooms/' + roomId));
     const data = snap.val();
     if (!data) return;
 
-    const board   = data.board || ['','','','','','','','',''];
-    const players = data.players || {};
+    const board  = normalizeBoard(data.board);
+    const status = data.status || 'playing';
 
-    // Validaciones
-    if (!players.X || !players.O) return;          // falta alguien
-    if (data.status === 'won' || data.status === 'draw') return; // ronda terminada
-    if (data.status === 'waiting') return;          // todavia esperando
-    if (data.turn !== mySymbol) return;             // no es mi turno
-    if (board[i] !== '') return;                    // celda ocupada
+    if (!data.nameX || !data.nameO) return;
+    if (status === 'won' || status === 'draw') return;
+    if (status === 'waiting') return;
+    if (data.turn !== mySymbol) return;
+    if (board[i] !== '-') return;
 
-    // Hacer jugada
-    const newBoard = [...board];
-    newBoard[i] = mySymbol;
+    // Jugada sobre el string
+    const arr = board.split('');
+    arr[i] = mySymbol;
+    const newBoard = arr.join('');
 
-    // Chequear ganador
-    let winner = null;
-    for (const combo of WINS) {
-      if (newBoard[combo[0]] && newBoard[combo[0]] === newBoard[combo[1]] && newBoard[combo[1]] === newBoard[combo[2]]) {
-        winner = newBoard[combo[0]]; break;
-      }
-    }
-    const draw = !winner && newBoard.every(c => c !== '');
+    const winner = checkWinner(newBoard);
+    const draw   = !winner && !newBoard.includes('-');
 
-    // Scores actualizados
-    const scores = data.scores || { X: 0, O: 0 };
-    const newScores = { X: Number(scores.X) || 0, O: Number(scores.O) || 0 };
-    if (winner) newScores[winner]++;
+    let scoreX = Number(data.scoreX) || 0;
+    let scoreO = Number(data.scoreO) || 0;
+    if (winner === 'X') scoreX++;
+    if (winner === 'O') scoreO++;
 
-    // REGLA DE TURNO:
-    // Si gana X  → la siguiente ronda empieza O (el perdedor)
-    // Si gana O  → la siguiente ronda empieza X (el perdedor)
-    // Si empate  → alterna (el que NO empezó esta ronda)
+    // REGLA: el que pierde empieza la siguiente ronda
     let nextStarter;
     if (winner === 'X')      nextStarter = 'O';
     else if (winner === 'O') nextStarter = 'X';
     else                     nextStarter = data.turn === 'X' ? 'O' : 'X';
 
-    const nextTurn = mySymbol === 'X' ? 'O' : 'X';
-
     await update(ref(db, 'rooms/' + roomId), {
       board: newBoard,
-      turn: nextTurn,
+      turn: mySymbol === 'X' ? 'O' : 'X',
       status: winner ? 'won' : draw ? 'draw' : 'playing',
-      winner: winner || null,
+      winner: winner || 'none',
       nextStarter: nextStarter,
-      scores: newScores
+      scoreX: scoreX,
+      scoreO: scoreO
     });
   }
 
-  // ── Reiniciar (conserva puntaje, aplica regla de turno) ──
   async function restartBoard() {
     if (!roomId) return;
     overlay.classList.remove('show');
     const snap = await get(ref(db, 'rooms/' + roomId));
     const data = snap.val();
-    // El perdedor empieza (guardado en nextStarter)
     const starter = (data && data.nextStarter) ? data.nextStarter : 'X';
     await update(ref(db, 'rooms/' + roomId), {
-      board: ['','','','','','','','',''],
-      turn: starter,
-      status: 'playing',
-      winner: null,
-      nextStarter: starter  // se mantiene hasta que termine la ronda
+      board: EMPTY, turn: starter, status: 'playing',
+      winner: 'none', nextStarter: starter
     });
   }
 
-  // ── Nueva partida (resetea todo) ─────────────────────────
   async function newGame() {
     if (!roomId) return;
     overlay.classList.remove('show');
+    prevScoreX = 0; prevScoreO = 0;
     await update(ref(db, 'rooms/' + roomId), {
-      board: ['','','','','','','','',''],
-      turn: 'X',
-      status: 'playing',
-      winner: null,
-      nextStarter: 'X',
-      scores: { X: 0, O: 0 }
+      board: EMPTY, turn: 'X', status: 'playing',
+      winner: 'none', nextStarter: 'X', scoreX: 0, scoreO: 0
     });
   }
 
@@ -402,7 +393,7 @@
     overlay.classList.add('show');
   }
 
-  // ── Lazos flotantes ──────────────────────────────────────
+  // Lazos flotantes
   const layer = document.getElementById('bowsLayer');
   for (let i = 0; i < 18; i++) {
     const div   = document.createElement('div');
